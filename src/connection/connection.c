@@ -272,14 +272,18 @@ void connection_update_sensor_temp(float temp)
 	// sensor_temp == zero means no data
 #if CONFIG_SENSOR_USE_VQF
 	if (sensor_get_mag_available() && sensor_get_mag_enabled()) {
-		// temp hack to display vqf mag disturbance detection status
 		vqf_debug_info_t vqf_info;
 		vqf_get_debug_info(&vqf_info);
-		if (vqf_info.mag_dist_detected) {
-			if (temp < 38.5f) {  // assume normal operating should be below 38.5C
-				temp = -temp; // invert temp to indicate mag disturbance, negative means disturbed, positive means normal
+		if(vqf_info.rest_detected) {
+			temp = 0.0f;
+		} else {
+			temp = 0.5f + vqf_info.mag_candidate_t;
+			if(vqf_info.mag_dist_detected) {
+				temp = -temp;
 			}
 		}
+		//temp = (vqf_info.mag_norm / vqf_info.mag_ref_norm - 1.0f) * 100.0f;
+		//temp = vqf_info.mag_dip - vqf_info.mag_ref_dip;
 	}
 #endif
 	if (temp < -38.5f) {
