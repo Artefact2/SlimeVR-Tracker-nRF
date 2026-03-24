@@ -633,7 +633,7 @@ uint8_t icm45_setup_WOM(void) // TODO: check if working
 	uint8_t ireg_buf[5];
 	int err = ssi_reg_read_byte(SENSOR_INTERFACE_DEV_IMU, ICM45686_INT1_STATUS0, &interrupts); // clear reset done int flag // TODO: is this needed
 	err |= ssi_reg_write_byte(SENSOR_INTERFACE_DEV_IMU, ICM45686_INT1_CONFIG0, 0x00); // disable default interrupt (RESET_DONE)
-	err |= ssi_reg_write_byte(SENSOR_INTERFACE_DEV_IMU, ICM45686_ACCEL_CONFIG0, ACCEL_UI_FS_SEL_8G << 4 | ACCEL_ODR_200Hz); // set accel ODR and FS
+	err |= ssi_reg_write_byte(SENSOR_INTERFACE_DEV_IMU, ICM45686_ACCEL_CONFIG0, ACCEL_UI_FS_SEL_8G << 4 | ACCEL_ODR_50Hz); // set accel ODR and FS
 	err |= ssi_reg_write_byte(SENSOR_INTERFACE_DEV_IMU, ICM45686_PWR_MGMT0, ACCEL_MODE_LP); // set accel and gyro modes
 	ireg_buf[0] = ICM45686_IPREG_SYS2; // address is a word, icm is big endian
 	ireg_buf[1] = ICM45686_IPREG_SYS2_REG_129;
@@ -646,9 +646,10 @@ uint8_t icm45_setup_WOM(void) // TODO: check if working
 //	err |= ssi_burst_write(SENSOR_INTERFACE_DEV_IMU, ICM45686_IREG_ADDR_15_8, ireg_buf, 3); // write buffer
 	ireg_buf[0] = ICM45686_IPREG_TOP1;
 	ireg_buf[1] = ICM45686_ACCEL_WOM_X_THR;
-	ireg_buf[2] = 0x08; // set wake thresholds // 8 x 3.9 mg is ~31.20 mg
-	ireg_buf[3] = 0x08; // set wake thresholds
-	ireg_buf[4] = 0x08; // set wake thresholds
+	// set wake threshold to ~0.5 m/s^2, to match VQF rest (13 * 1/256g units)
+	ireg_buf[2] = 13;
+	ireg_buf[3] = 13;
+	ireg_buf[4] = 13;
 	err |= ssi_burst_write(SENSOR_INTERFACE_DEV_IMU, ICM45686_IREG_ADDR_15_8, ireg_buf, 5); // write buffer
 	err |= ssi_reg_write_byte(SENSOR_INTERFACE_DEV_IMU, ICM45686_TMST_WOM_CONFIG, 0x14); // enable WOM, enable WOM interrupt
 	err |= ssi_reg_write_byte(SENSOR_INTERFACE_DEV_IMU, ICM45686_INT1_CONFIG1, 0x0E); // route WOM interrupt
