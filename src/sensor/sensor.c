@@ -1378,7 +1378,7 @@ void sensor_loop(void)
 					LOG_INF("Switching sensors to low noise");
 					break;
 				case SENSOR_SENSOR_MODE_LOW_POWER:
-					set_update_time_ms(33);
+					set_update_time_ms(100);
 					LOG_INF("Switching sensors to low power");
 					break;
 				case SENSOR_SENSOR_MODE_LOW_POWER_2:
