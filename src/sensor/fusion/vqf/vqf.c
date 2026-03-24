@@ -46,27 +46,25 @@ void vqf_update_sensor_ids(int imu)
 static void set_params()
 {
 	init_params(&params);
-	params.tauAcc = 3.2f;
-	params.biasClip = 2.5f;
-	params.biasForgettingTime = 130.0f;
-	params.biasSigmaInit = 1.2f;
-	params.biasSigmaMotion = 0.20f;
-	params.biasSigmaRest = 0.03f;
+
+	// ICM-45686 has a good gyroscope, with a stable bias and low thermal drift;
+	// use it to its best potential.
+	params.biasClip = params.biasSigmaInit = 0.1f; // Max deviation from ZRO cal (already substracted before VQF)
+	params.biasSigmaMotion = 0.2f;
+	params.biasSigmaRest = 0.02f;
+	params.biasForgettingTime = 300.0f;
 	params.biasVerticalForgettingFactor = 0.00001f;
-	params.motionBiasEstEnabled = true;
-	params.restBiasEstEnabled = true;
-	params.restFilterTau = 1.3f;
-	params.restMinT = 2.5f;
-	params.restThAcc = 0.20f;
-	params.restThGyr = 0.55f;
-	params.magDistRejectionEnabled = true;
+	params.restMinT = 0.5f;
+	params.restThAcc = 0.2f; // restMinGyr already capped at biasClip
+
+	// Only trust magnetometer in a very clean magnetic environment; fall back
+	// to 6DOF mode essentially forever when magnetic field is rejected.
 	params.magCurrentTau = 0.5f;
-	params.magNormTh = 0.09f;
-	params.magDipTh = 9.0f;
-	params.magNewFirstTime = 6.0f;
-	params.magNewMinGyr = 15.0f;
-	params.magMinUndisturbedTime = 0.8f;
-	params.magMaxRejectionTime = 1800.0f;
+	params.magNormTh = 0.08f;
+	params.magDipTh = 3.0f;
+	params.magNewMinGyr = 5.0f;
+	params.magNewTime = 10.0f;
+	params.magNewFirstTime = 10.0f;
 	params.magRejectionFactor = 900.0f;
 }
 
