@@ -232,6 +232,7 @@ static void led_pin_set(enum sys_led_color color, int brightness_pptt, int value
 	} else if (value_pptt > 10000) {
 		value_pptt = 10000;
 	}
+	brightness_pptt >>= 4;
 #if PWM_LED_EXISTS
 	value_pptt = value_pptt * brightness_pptt / 10000;
 	// only supporting color if PWM is supported
