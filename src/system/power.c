@@ -732,8 +732,7 @@ static void power_thread(void)
 		bool plug_state_debouncing = update_device_plugged_state(raw_device_plugged, now_ms);
 		bool plug_signal_settling = plug_state_debouncing
 			|| now_ms - last_plug_signal_change_ms < BATTERY_PLUG_SETTLE_MS;
-		bool battery_discharged = !plug_signal_settling && battery_available
-			&& (average_pptt >= 0 ? average_pptt : battery_pptt) == 0;
+		bool battery_discharged = !plug_signal_settling && battery_available && (battery_mV < 3300);
 
 		device_charged = charged; // TODO: timer on device_plugged could be used to infer charged state
 
