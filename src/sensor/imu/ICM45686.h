@@ -132,6 +132,7 @@
 #define ICM45686_IPREG_SYS2                0xA5 // MSB
 
 #define ICM45686_IPREG_SYS2_REG_129        0x81
+#define ICM45686_IPREG_SYS2_REG_170        0xAA
 
 /*
 Burst-write and burst-read operations are not supported when accessing IREGs from the host.

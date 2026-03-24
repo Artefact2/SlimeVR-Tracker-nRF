@@ -1220,10 +1220,19 @@ void sensor_loop(void)
 				case SENSOR_SENSOR_MODE_LOW_NOISE:
 					set_update_time_ms(10);
 					LOG_INF("Switching sensors to low noise");
+					ssi_reg_write_byte(SENSOR_INTERFACE_DEV_IMU, ICM45686_PWR_MGMT0, GYRO_MODE_LN << 2 | ACCEL_MODE_LN);
 					break;
 				case SENSOR_SENSOR_MODE_LOW_POWER:
 					set_update_time_ms(100);
 					LOG_INF("Switching sensors to low power");
+					ssi_reg_write_byte(SENSOR_INTERFACE_DEV_IMU, ICM45686_PWR_MGMT0, GYRO_MODE_LP << 2 | ACCEL_MODE_LP);
+					uint8_t ireg_buf[3];
+					ireg_buf[0] = ICM45686_IPREG_SYS2;
+					ireg_buf[1] = ICM45686_IPREG_SYS2_REG_129;
+					ireg_buf[2] = 0x00; // set ACCEL_LP_AVG_SEL/GYRO_LP_AVG_SEL to 1x
+					ssi_burst_write(SENSOR_INTERFACE_DEV_IMU, ICM45686_IREG_ADDR_15_8, ireg_buf, 3);
+					ireg_buf[1] = ICM45686_IPREG_SYS2_REG_170;
+					ssi_burst_write(SENSOR_INTERFACE_DEV_IMU, ICM45686_IREG_ADDR_15_8, ireg_buf, 3);
 					break;
 				case SENSOR_SENSOR_MODE_LOW_POWER_2:
 					set_update_time_ms(100);
