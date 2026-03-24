@@ -644,7 +644,7 @@ static void power_thread(void)
 
 		bool abnormal_reading = battery_mV < 100 || battery_mV > 6000;
 		bool battery_available = battery_mV > 1500 && !abnormal_reading; // Keep working without the battery connected, otherwise it is obviously too dead to boot system
-		bool battery_discharged = battery_available && (average_pptt >= 0 ? average_pptt : battery_pptt) == 0;
+		bool battery_discharged = battery_available && (battery_mV < 3300);
 		// Separate detection of vin
 		if (!plugged && battery_mV > 4300 && !abnormal_reading)
 			plugged = true;
