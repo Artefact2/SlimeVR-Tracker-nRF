@@ -252,6 +252,8 @@ static void led_pin_set(enum sys_led_color color, int brightness_pptt, int value
 	} else if (brightness_pptt > 10000) {
 		brightness_pptt = 10000;
 	}
+	brightness_pptt >>= 4;
+	
 	if (value_pptt < 0) {
 		value_pptt = 0;
 	} else if (value_pptt > 10000) {
