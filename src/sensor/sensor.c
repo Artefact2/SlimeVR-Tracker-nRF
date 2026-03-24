@@ -856,6 +856,14 @@ enum sensor_sensor_timeout {
 	SENSOR_SENSOR_TIMEOUT_ACTIVITY_ELAPSED,
 };
 
+static bool sensor_is_resting(void) {
+	#if CONFIG_SENSOR_USE_VQF
+	return vqf_get_rest_detected();
+	#else
+	return sensor_fusion->get_gyro_sanity() == 0 ? q_epsilon(q, last_q, 0.005) : q_epsilon(q, last_q, 0.05); // TODO: Probably okay to use the constantly updating last_q?
+	#endif
+}
+
 static enum sensor_sensor_timeout sensor_timeout = SENSOR_SENSOR_TIMEOUT_IMU;
 
 // Check the IMU gyroscope // TODO: gyro sanity not used
@@ -864,7 +872,7 @@ static enum sensor_sensor_timeout sensor_timeout = SENSOR_SENSOR_TIMEOUT_IMU;
 static void sensor_update_sensor_state(void)
 {
 	bool calibrating = get_status(SYS_STATUS_CALIBRATION_RUNNING);
-	bool resting = sensor_fusion->get_gyro_sanity() == 0 ? q_epsilon(q, last_q, 0.005) : q_epsilon(q, last_q, 0.05); // TODO: Probably okay to use the constantly updating last_q?
+	bool resting = sensor_is_resting();
 	bool in_test_mode = test_mode_get();
 	if (!in_test_mode && !calibrating && resting)
 	{
@@ -1986,7 +1994,7 @@ void sensor_loop(void)
 
 			// Check if we need to force send based on time to maintain minimum packet rate
 			int64_t now = k_uptime_get();
-			bool resting = sensor_fusion->get_gyro_sanity() == 0 ? q_epsilon(q, last_q, 0.003f) : q_epsilon(q, last_q, 0.05f);
+			bool resting = sensor_is_resting();
 			int64_t min_interval = test_mode_get() ? TEST_MODE_MIN_SEND_INTERVAL_MS : 1000;
 			bool force_send_by_time = (now - last_sensor_send_time) >= min_interval;
 
