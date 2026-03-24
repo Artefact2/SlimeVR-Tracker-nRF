@@ -55,7 +55,7 @@ typedef struct {
 
 static sensor_debug_state_t debug_state = {
 	.enabled = false,
-	.output_every_n = 4  // Default: output every 4 accel samples
+	.output_every_n = 1  // Default: output every accel sample
 };
 
 #if CONFIG_SENSOR_RANGE_STATS
@@ -2239,7 +2239,6 @@ void sensor_debug_start(uint32_t duration_sec)
 	debug_state.duration_ms = duration_sec * 1000;
 	debug_state.accel_count = 0;
 	debug_state.output_count = 0;
-	// output_every_n is already set to 4 by default
 
 	float accel_odr = sensor_get_accel_odr();
 	LOG_INF("Debug mode started for %u seconds (accel ODR: %.1fHz, output every %u samples)",
