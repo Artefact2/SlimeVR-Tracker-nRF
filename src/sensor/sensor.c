@@ -921,6 +921,12 @@ static void sensor_update_sensor_state(void)
 {
 	bool calibrating = get_status(SYS_STATUS_CALIBRATION_RUNNING);
 	bool resting = sensor_is_resting();
+	bool bias_ok = true;
+	#if CONFIG_SENSOR_USE_VQF
+	vqf_debug_info_t vqf_info;
+	vqf_get_debug_info(&vqf_info);
+	bias_ok = vqf_info.bias_sigma < 0.025f; // XXX: assert > params.biasSigmaRest
+	#endif
 	bool in_test_mode = test_mode_get();
 	bool ota_suppressed_now = esb_ota_is_active() || connection_get_ota_suppressed();
 
@@ -953,7 +959,7 @@ static void sensor_update_sensor_state(void)
 			LOG_INF("Switching to activity timeout");
 			sensor_timeout = SENSOR_SENSOR_TIMEOUT_ACTIVITY;
 		}
-		if (sensor_timeout == SENSOR_SENSOR_TIMEOUT_ACTIVITY && last_data_delta > CONFIG_ACTIVE_TIMEOUT_DELAY)
+		if (bias_ok && sensor_timeout == SENSOR_SENSOR_TIMEOUT_ACTIVITY && last_data_delta > CONFIG_ACTIVE_TIMEOUT_DELAY)
 		{
 			LOG_INF("No motion from sensors in %dm", CONFIG_ACTIVE_TIMEOUT_DELAY / 60000);
 #if CONFIG_SLEEP_ON_ACTIVE_TIMEOUT && CONFIG_USE_IMU_WAKE_UP
@@ -967,7 +973,7 @@ static void sensor_update_sensor_state(void)
 		}
 #endif
 #if CONFIG_USE_IMU_TIMEOUT && CONFIG_USE_IMU_WAKE_UP
-		if (sensor_timeout == SENSOR_SENSOR_TIMEOUT_IMU && last_data_delta > imu_timeout) // No motion in ramp time
+		if (bias_ok && sensor_timeout == SENSOR_SENSOR_TIMEOUT_IMU && last_data_delta > imu_timeout) // No motion in ramp time
 		{
 			LOG_INF("No motion from sensors in %llds", imu_timeout / 1000);
 			// Queue power state request
