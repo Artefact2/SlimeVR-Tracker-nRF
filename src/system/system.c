@@ -187,10 +187,11 @@ static int sys_retained_init(void)
 		// read from nvs to retained
 		sys_read(PAIRED_ID, &retained->paired_addr, sizeof(retained->paired_addr));
 		sys_read(MAIN_SENSOR_DATA_ID, &retained->sensor_data, sizeof(retained->sensor_data));
-		sys_read(MAIN_ACCEL_BIAS_ID, &retained->accelBias, sizeof(retained->accelBias));
 		sys_read(MAIN_GYRO_BIAS_ID, &retained->gyroBias, sizeof(retained->gyroBias));
 		sys_read(MAIN_MAG_BIAS_ID, &retained->magBAinv, sizeof(retained->magBAinv));
+		#if CONFIG_SENSOR_USE_6_SIDE_CALIBRATION
 		sys_read(MAIN_ACC_6_BIAS_ID, &retained->accBAinv, sizeof(retained->accBAinv));
+		#endif
 		sys_read(BATT_STATS_CURVE_ID, &retained->battery_pptt_curve, sizeof(retained->battery_pptt_curve));
 
 		#if CONFIG_SENSOR_USE_SENS_CALIBRATION

@@ -11,7 +11,6 @@
 
 #define RBT_CNT_ID 1
 #define PAIRED_ID 2
-#define MAIN_ACCEL_BIAS_ID 3
 #define MAIN_GYRO_BIAS_ID 4
 #define MAIN_MAG_BIAS_ID 5
 
@@ -19,7 +18,9 @@
 #define MAIN_GYRO_SENS_ID 6
 #endif
 
+#if CONFIG_SENSOR_USE_6_SIDE_CALIBRATION
 #define MAIN_ACC_6_BIAS_ID 7
+#endif
 
 #define BATT_STATS_LAST_RUN_ID 8
 #define BATT_STATS_INTERVAL_0 9 // ID 9 to 28 (20 intervals)
