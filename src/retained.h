@@ -69,8 +69,10 @@ struct retained_data {
 	float magBias[3];
 	float magBAinv[4][3];
 	float accBAinv[4][3];
-	float gyroSensScale[3]; // Gyro sensitivity
 
+	#if CONFIG_SENSOR_USE_SENS_CALIBRATION
+	float gyroSensScale[3]; // Gyro sensitivity
+	#endif
 
 	uint16_t imu_addr;
 	uint16_t mag_addr;
