@@ -65,10 +65,11 @@ struct retained_data {
 	uint8_t fusion_data[512];
 
 	float gyroBias[3];
-	float accelBias[3];
-	float magBias[3];
 	float magBAinv[4][3];
+
+	#if CONFIG_SENSOR_USE_6_SIDE_CALIBRATION
 	float accBAinv[4][3];
+	#endif
 
 	#if CONFIG_SENSOR_USE_SENS_CALIBRATION
 	float gyroSensScale[3]; // Gyro sensitivity

@@ -157,14 +157,6 @@ static void print_sensor(void)
 	float diag_y = retained->accBAinv[2][1];
 	float diag_z = retained->accBAinv[3][2];
 	printk("  Scale: [%.5f, %.5f, %.5f]\n", (double)diag_x, (double)diag_y, (double)diag_z);
-
-#else
-	printk(
-		"\nAccelerometer bias: %.5f %.5f %.5f\n",
-		(double)retained->accelBias[0],
-		(double)retained->accelBias[1],
-		(double)retained->accelBias[2]
-	);
 #endif
 	printk(
 		"Gyroscope bias: %.5f %.5f %.5f\n",
@@ -184,8 +176,6 @@ static void print_sensor(void)
 		(double)sensor_get_current_imu_temperature()
 	);
 #endif
-	//	printk("Magnetometer bridge offset: %.5f %.5f %.5f\n", (double)retained->magBias[0],
-	//(double)retained->magBias[1], (double)retained->magBias[2]);
 	printk("Magnetometer matrix:\n");
 	for (int i = 0; i < 3; i++) {
 		printk(
@@ -591,7 +581,7 @@ void cmd_sens_reset(void)
 
 void cmd_reset_zro(void)
 {
-	sensor_calibration_clear(NULL, NULL, true);
+	sensor_calibration_clear(NULL, true);
 	// Manual command: invalidate fusion to force quaternion recalculation
 	sensor_fusion_invalidate();
 }
