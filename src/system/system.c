@@ -192,6 +192,8 @@ static int sys_retained_init(void)
 		sys_read(MAIN_MAG_BIAS_ID, &retained->magBAinv, sizeof(retained->magBAinv));
 		sys_read(MAIN_ACC_6_BIAS_ID, &retained->accBAinv, sizeof(retained->accBAinv));
 		sys_read(BATT_STATS_CURVE_ID, &retained->battery_pptt_curve, sizeof(retained->battery_pptt_curve));
+
+		#if CONFIG_SENSOR_USE_SENS_CALIBRATION
 		sys_read(MAIN_GYRO_SENS_ID, &retained->gyroSensScale, sizeof(retained->gyroSensScale));
 		// If gyroSensScale was never set in NVS (all zeros), restore default values
 		if (retained->gyroSensScale[0] == 0.0f &&
@@ -201,6 +203,8 @@ static int sys_retained_init(void)
 			retained->gyroSensScale[1] = 1.0f;
 			retained->gyroSensScale[2] = 1.0f;
 		}
+		#endif
+
 #if CONFIG_SENSOR_USE_TCAL
 		sys_read(MAIN_GYRO_TEMP_ID, &retained->gyroTemp, sizeof(retained->gyroTemp));
 		sys_read(MAIN_GYRO_TCAL_POINTS_ID, &retained->tempCalPoints, sizeof(retained->tempCalPoints));
@@ -296,7 +300,6 @@ void sys_read(uint16_t id, void *data, size_t len)
 
 void sys_clear(void)
 {
-
 	static bool reset_confirm = false;
 	if (!reset_confirm) {
 		printk(
@@ -315,9 +318,13 @@ void sys_clear(void)
 	reset_confirm = false;
 
 	// Re-initialize fields that need non-zero default values
+
+	#if CONFIG_SENSOR_USE_SENS_CALIBRATION
 	retained->gyroSensScale[0] = 1.0f;
 	retained->gyroSensScale[1] = 1.0f;
 	retained->gyroSensScale[2] = 1.0f;
+	#endif
+
 	retained->build_timestamp = BUILD_TIMESTAMP;
 	retained_update();
 
