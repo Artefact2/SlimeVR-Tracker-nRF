@@ -45,10 +45,12 @@
 static uint8_t imu_id;
 static uint8_t sensor_data[128]; // any use sensor data
 
-static float accelBias[3] = {0}, gyroBias[3] = {0}, magBias[3] = {0}; // offset biases
-
-static float accBAinv[4][3];
+static float gyroBias[3] = {0};
 static float magBAinv[4][3];
+
+#if CONFIG_SENSOR_USE_6_SIDE_CALIBRATION
+static float accBAinv[4][3];
+#endif
 
 static uint8_t magneto_progress;
 static uint8_t last_magneto_progress;
@@ -605,14 +607,13 @@ static int isAccRest(float *, float *, float, int *, int);
 
 // calibration logic
 static int sensor_offsetBias_internal(
-	float *dest1,
-	float *dest2,
+	float *dest,
 	float *avg_temp,
 	float *temp_range,
 	int max_sample_time_ms,
 	int min_sample_time_ms
 );
-static int sensor_offsetBias(float *dest1, float *dest2, float *avg_temp, float *temp_range);
+static int sensor_offsetBias(float *dest, float *avg_temp, float *temp_range);
 #if CONFIG_SENSOR_USE_6_SIDE_CALIBRATION
 static int sensor_6_sideBias(float a_inv[][3], int *captured_count_out);
 #endif
@@ -631,12 +632,6 @@ void sensor_calibration_process_accel(float a[3])
 	sensor_sample_accel(a);
 #if CONFIG_SENSOR_USE_6_SIDE_CALIBRATION
 	apply_BAinv(a, accBAinv);
-#else
-	// In single-side calibration mode, accelBias should be zero.
-	// Single-side bias is orientation-dependent and should not be applied.
-	// for (int i = 0; i < 3; i++) {
-	// 	a[i] -= accelBias[i];
-	// }
 #endif
 }
 
@@ -718,8 +713,6 @@ void sensor_calibration_process_gyro(float g[3])
 
 void sensor_calibration_process_mag(float m[3])
 {
-	//	for (int i = 0; i < 3; i++)
-	//		m[i] -= magBias[i];
 	sensor_sample_mag(m);
 	apply_BAinv(m, magBAinv);
 }
@@ -761,11 +754,12 @@ void sensor_calibration_online_mag_cold_start(void)
 void sensor_calibration_read(void)
 {
 	memcpy(sensor_data, retained->sensor_data, sizeof(sensor_data));
-	memcpy(accelBias, retained->accelBias, sizeof(accelBias));
 	memcpy(gyroBias, retained->gyroBias, sizeof(gyroBias));
-	memcpy(magBias, retained->magBias, sizeof(magBias));
 	memcpy(magBAinv, retained->magBAinv, sizeof(magBAinv));
+	#if CONFIG_SENSOR_USE_6_SIDE_CALIBRATION
 	memcpy(accBAinv, retained->accBAinv, sizeof(accBAinv));
+	#endif
+	
 	{
 		float zero[3] = {0};
 		if (v_diff_mag(magBAinv[0], zero) != 0) {
@@ -784,18 +778,15 @@ void sensor_calibration_read(void)
 #endif
 }
 
-int sensor_calibration_validate(float *a_bias, float *g_bias, bool write)
+int sensor_calibration_validate(float *g_bias, bool write)
 {
-	if (a_bias == NULL) {
-		a_bias = accelBias;
-	}
 	if (g_bias == NULL) {
 		g_bias = gyroBias;
 	}
 	float zero[3] = {0};
-	if (!v_epsilon(a_bias, zero, 0.5) || !v_epsilon(g_bias, zero, 50.0)) // check accel is <0.5G and gyro <50dps
+	if (!v_epsilon(g_bias, zero, 50.0)) // check if gyro zro is <50dps
 	{
-		sensor_calibration_clear(a_bias, g_bias, write);
+		sensor_calibration_clear(g_bias, write);
 		// Validation failure: do NOT call any fusion function
 		// Let fusion keep its current bias estimate to avoid residual drift
 		LOG_WRN("Invalidated calibration");
@@ -859,19 +850,14 @@ int sensor_calibration_validate_mag(float m_inv[][3], bool write)
 	return 0;
 }
 
-void sensor_calibration_clear(float *a_bias, float *g_bias, bool write)
+void sensor_calibration_clear(float *g_bias, bool write)
 {
-	if (a_bias == NULL) {
-		a_bias = accelBias;
-	}
 	if (g_bias == NULL) {
 		g_bias = gyroBias;
 	}
-	memset(a_bias, 0, sizeof(accelBias));
 	memset(g_bias, 0, sizeof(gyroBias));
 	if (write) {
 		LOG_INF("Clearing stored calibration data");
-		sys_write(MAIN_ACCEL_BIAS_ID, &retained->accelBias, a_bias, sizeof(accelBias));
 		sys_write(MAIN_GYRO_BIAS_ID, &retained->gyroBias, g_bias, sizeof(gyroBias));
 #if CONFIG_SENSOR_USE_TCAL
 		// Also clear boot/runtime calibration D_offset since ZRO is being reset
@@ -1082,8 +1068,8 @@ static int sensor_wait_mag(float m[3], k_timeout_t timeout)
 
 static void sensor_calibrate_imu()
 {
-	float a_bias[3], g_bias[3];
-	LOG_INF("Calibrating main accelerometer and gyroscope zero rate offset");
+	float g_bias[3];
+	LOG_INF("Calibrating gyroscope zero rate offset");
 	LOG_INF("Rest the device on a stable surface");
 
 	set_led(SYS_LED_PATTERN_LONG, SYS_LED_PRIORITY_SENSOR);
@@ -1122,11 +1108,11 @@ static void sensor_calibrate_imu()
 	}
 
 	LOG_INF("Reading data");
-	sensor_calibration_clear(a_bias, g_bias, false);
+	sensor_calibration_clear(g_bias, false);
 #if CONFIG_SENSOR_USE_TCAL
-	int err = sensor_offsetBias(a_bias, g_bias, &avg_temp, &temp_range);
+	int err = sensor_offsetBias(g_bias, &avg_temp, &temp_range);
 #else
-	int err = sensor_offsetBias(a_bias, g_bias, NULL, NULL);
+	int err = sensor_offsetBias(g_bias, NULL, NULL);
 #endif
 	if (err) // This takes about 3s
 	{
@@ -1135,26 +1121,21 @@ static void sensor_calibrate_imu()
 		} else if (err == -3) {
 			LOG_INF("Temperature instability detected");
 		}
-		a_bias[0] = NAN; // invalidate calibration
+		g_bias[0] = NAN; // invalidate calibration
 	} else {
 		LOG_INF("Gyroscope bias: %.5f %.5f %.5f", (double)g_bias[0], (double)g_bias[1], (double)g_bias[2]);
 	}
-	if (sensor_calibration_validate(a_bias, g_bias, false)) {
+	if (sensor_calibration_validate(g_bias, false)) {
 		set_led(SYS_LED_PATTERN_OFF, SYS_LED_PRIORITY_SENSOR);
 		LOG_INF("Restoring previous calibration");
 		LOG_INF("Gyroscope bias: %.5f %.5f %.5f", (double)gyroBias[0], (double)gyroBias[1], (double)gyroBias[2]);
-		sensor_calibration_validate(NULL, NULL, true); // additionally verify old calibration
+		sensor_calibration_validate(NULL, true); // additionally verify old calibration
 		return;
 	} else {
 		LOG_INF("Applying calibration");
-		memcpy(accelBias, a_bias, sizeof(accelBias));
 		memcpy(gyroBias, g_bias, sizeof(gyroBias));
 		sensor_fusion_update_bias(NULL); // Only bias changed, preserve orientation
 	}
-#if !CONFIG_SENSOR_USE_6_SIDE_CALIBRATION
-	// In 6-side calibration mode, save accelerometer bias (full calibration matrix used elsewhere)
-	sys_write(MAIN_ACCEL_BIAS_ID, &retained->accelBias, accelBias, sizeof(accelBias));
-#endif
 
 #if CONFIG_SENSOR_USE_TCAL
 	if (tcal_auto_calibration_enabled && !isnan(avg_temp)) {
@@ -2344,8 +2325,7 @@ static int isAccRest(float *acc, float *pre_acc, float threshold, int *t, int re
 #endif
 
 static int sensor_offsetBias_internal(
-	float *dest1,
-	float *dest2,
+	float *dest,
 	float *avg_temp,
 	float *temp_range,
 	int max_sample_time_ms,
@@ -2580,16 +2560,9 @@ static int sensor_offsetBias_internal(
 #endif
 
 	// Calculate averages
-	dest2[0] = (float)(gyro_sum[0] / i);
-	dest2[1] = (float)(gyro_sum[1] / i);
-	dest2[2] = (float)(gyro_sum[2] / i);
-
-#if !CONFIG_SENSOR_USE_6_SIDE_CALIBRATION
-	// In single-side calibration mode, do NOT calculate accelerometer bias.
-	dest1[0] = 0.0f;
-	dest1[1] = 0.0f;
-	dest1[2] = 0.0f;
-#endif
+	dest[0] = (float)(gyro_sum[0] / i);
+	dest[1] = (float)(gyro_sum[1] / i);
+	dest[2] = (float)(gyro_sum[2] / i);
 
 	return 0;
 }
@@ -2598,11 +2571,10 @@ static int sensor_offsetBias_internal(
  * Standard sensor offset bias collection function
  * Uses default timing: BIAS_COLLECT_MAX_SAMPLE_TIME_MS max, BIAS_COLLECT_MIN_SAMPLE_TIME_MS min
  */
-int sensor_offsetBias(float *dest1, float *dest2, float *avg_temp, float *temp_range)
+int sensor_offsetBias(float *dest, float *avg_temp, float *temp_range)
 {
 	return sensor_offsetBias_internal(
-		dest1,
-		dest2,
+		dest,
 		avg_temp,
 		temp_range,
 		BIAS_COLLECT_MAX_SAMPLE_TIME_MS,
@@ -3392,7 +3364,7 @@ static void calibration_thread(void)
 
 	// Verify calibrations only after the sensor stack is initialized.
 	if (sensor_ready) {
-		sensor_calibration_validate(NULL, NULL, true);
+		sensor_calibration_validate(NULL, true);
 #if CONFIG_SENSOR_USE_6_SIDE_CALIBRATION
 		sensor_calibration_validate_6_side(NULL, true);
 #endif
@@ -4189,9 +4161,8 @@ static int sensor_boot_bias_collect(float *dest_bias, float *avg_temp)
 	// Use the existing sensor_offsetBias function with same parameters
 	// This ensures consistent quality between boot cal and normal cal
 	float temp_range = NAN;
-	float dummy_accel_bias[3] = {0};
 
-	int err = sensor_offsetBias(dummy_accel_bias, dest_bias, avg_temp, &temp_range);
+	int err = sensor_offsetBias(dest_bias, avg_temp, &temp_range);
 
 	if (err) {
 		if (err == -1) {
@@ -4227,12 +4198,10 @@ static int sensor_runtime_bias_collect(float *dest_bias, float *avg_temp)
 
 	// Use internal function with shorter sampling time for runtime calibration
 	float temp_range = NAN;
-	float dummy_accel_bias[3] = {0};
 
 	// Runtime calibration uses shorter max time (3s) and shorter min time (2s)
 	int min_sample_time = RUNTIME_CAL_SAMPLE_TIME_MS * 2 / 3; // ~2 seconds minimum
 	int err = sensor_offsetBias_internal(
-		dummy_accel_bias,
 		dest_bias,
 		avg_temp,
 		&temp_range,
