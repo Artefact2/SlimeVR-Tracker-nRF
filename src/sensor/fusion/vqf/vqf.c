@@ -161,31 +161,27 @@ void vqf_update_sensor_ids(int imu)
 static void set_params()
 {
 	init_params(&params);
-	params.tauAcc = 4.3f;
-	params.biasClip = 2.0f;
-	params.biasForgettingTime = 427.0f;
-	params.biasSigmaInit = 1.10f;
-	params.biasSigmaMotion = 0.048f;
-	params.biasSigmaRest = 0.0153f;
-	params.biasVerticalForgettingFactor = 0.0001f;
-	params.motionBiasEstEnabled = true;
-	params.restBiasEstEnabled = true;
-	params.restFilterTau = 0.66f;
-	params.restMinT = 0.63f;
-	params.restThGyr = 0.68f;
-	params.restThAcc = 0.21f;
-	params.magDistRejectionEnabled = true;
-	params.tauMag = 9.0f;
-	params.magCurrentTau = 0.50f;
-	params.magNormTh = 0.09f;
-	params.magDipTh = 6.0f;
-	params.magRefTau = 15.0f;
-	params.magNewTime = 12.0f;
-	params.magNewFirstTime = 5.5f;
-	params.magNewMinGyr = 16.0f;
-	params.magMinUndisturbedTime = 0.6f;
-	params.magMaxRejectionTime = 3200.0f;
-	params.magRejectionFactor = 1150.0f;
+
+	// VQF just tracks the offset from our T-Cal curve; we expect it to be small
+	// and stable over time.
+	params.biasClip = 0.2f;
+	params.biasSigmaInit = 0.1f;
+	params.biasSigmaMotionAcc = 0.2f;
+	params.biasSigmaRest = 0.02f;
+	params.biasForgettingTime = 600.0f;
+	params.biasVerticalForgettingFactor = 0.00001f;
+	params.restMinT = 0.5f;
+	params.restThAcc = 0.2f; // restMinGyr already capped at biasClip
+
+	// Only trust magnetometer in a very clean magnetic environment; fall back
+	// to 6DOF mode essentially forever when magnetic field is rejected.
+	params.magCurrentTau = 0.5f;
+	params.magNormTh = 0.08f;
+	params.magDipTh = 3.0f;
+	params.magNewMinGyr = 5.0f;
+	params.magNewTime = 10.0f;
+	params.magNewFirstTime = 10.0f;
+	params.magRejectionFactor = 900.0f;
 }
 
 void vqf_init(float g_time, float a_time, float m_time)
