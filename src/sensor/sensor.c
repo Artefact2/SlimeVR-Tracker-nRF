@@ -692,13 +692,10 @@ void sensor_retained_read(void) // TODO: move some of this to sys? or move to ca
 	LOG_INF("Accelerometer matrix:");
 	for (int i = 0; i < 3; i++)
 		LOG_INF("%.5f %.5f %.5f %.5f", (double)retained->accBAinv[0][i], (double)retained->accBAinv[1][i], (double)retained->accBAinv[2][i], (double)retained->accBAinv[3][i]);
-#else
-	LOG_INF("Accelerometer bias: %.5f %.5f %.5f", (double)retained->accelBias[0], (double)retained->accelBias[1], (double)retained->accelBias[2]);
 #endif
 	LOG_INF("Gyroscope bias: %.5f %.5f %.5f", (double)retained->gyroBias[0], (double)retained->gyroBias[1], (double)retained->gyroBias[2]);
 	if (mag_available && mag_enabled)
 	{
-//		LOG_INF("Magnetometer bridge offset: %.5f %.5f %.5f", (double)retained->magBias[0], (double)retained->magBias[1], (double)retained->magBias[2]);
 		LOG_INF("Magnetometer matrix:");
 		for (int i = 0; i < 3; i++)
 			LOG_INF("%.5f %.5f %.5f %.5f", (double)retained->magBAinv[0][i], (double)retained->magBAinv[1][i], (double)retained->magBAinv[2][i], (double)retained->magBAinv[3][i]);
@@ -711,7 +708,6 @@ void sensor_retained_write(void) // TODO: move to sys?
 {
 	if (!sensor_fusion_init)
 		return;
-//	memcpy(retained->magBias, sensor_calibration_get_magBias(), sizeof(retained->magBias));
 	if (skip_fusion_save) {
 		// Mag toggle pending: invalidate fusion so it reinitializes after reboot
 		retained->fusion_id = 0;
