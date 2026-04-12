@@ -70,9 +70,13 @@ bool retained_validate(void)
 		 */
 		memset(retained, 0, sizeof(struct retained_data));
 		retained->build_timestamp = BUILD_TIMESTAMP;
+
+		#if CONFIG_SENSOR_USE_SENS_CALIBRATION
 		retained->gyroSensScale[0] = 1.0f;
 		retained->gyroSensScale[1] = 1.0f;
 		retained->gyroSensScale[2] = 1.0f;
+		#endif
+
 		// Initialize battery tracker to invalid state (-1)
 		retained->max_battery_pptt = -1;
 		retained->min_battery_pptt = -1;
