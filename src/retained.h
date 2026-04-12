@@ -20,11 +20,6 @@ struct TempCalPoint {
 #endif
 
 struct retained_data {
-	/* The build version of the firmware that last updated the
-	 * retained data.
-	 */
-	uint32_t build_timestamp;
-
 	/* The uptime from the current session the last time the
 	 * retained data was updated.
 	 */
@@ -34,6 +29,11 @@ struct retained_data {
 	 * uptime_latest of this session.
 	 */
 	uint64_t uptime_sum;
+
+	/* The build version of the firmware that last updated the
+	 * retained data.
+	 */
+	uint32_t build_timestamp;
 
 	/* Battery statistics.  Tracking for discharge curve only begins
 	 * after ~3% discharged.  If battery_pptt has changed significantly
@@ -50,8 +50,8 @@ struct retained_data {
 	uint64_t battery_runtime_sum;
 
 	/* Last interval stored in NVS */
-	int16_t battery_pptt_saved;
 	uint64_t battery_runtime_saved;
+	int16_t battery_pptt_saved;
 
 	/* Calibrated discharge curve */
 	int16_t battery_pptt_curve[18];
@@ -61,16 +61,16 @@ struct retained_data {
 
 	uint8_t sensor_data[128];
 
-	float accelBias[3];
+	uint8_t fusion_id; // fusion_data_stored
+	uint8_t fusion_data[512];
+
 	float gyroBias[3];
+	float accelBias[3];
 	float magBias[3];
 	float magBAinv[4][3];
 	float accBAinv[4][3];
 	float gyroSensScale[3]; // Gyro sensitivity
 
-
-	uint8_t fusion_id; // fusion_data_stored
-	uint8_t fusion_data[512];
 
 	uint16_t imu_addr;
 	uint16_t mag_addr;
@@ -112,8 +112,8 @@ struct retained_data {
 		bool enabled;              // Feature enabled
 		bool completed;            // Completed for this boot
 		uint8_t attempt_count;     // Number of attempts
-		float doffset[3];          // Calculated D_offset (runtime only)
 		bool doffset_valid;        // D_offset is valid
+		float doffset[3];          // Calculated D_offset (runtime only)
 	} bootCalState;
 #endif
 
