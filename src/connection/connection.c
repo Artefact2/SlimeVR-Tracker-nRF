@@ -774,7 +774,9 @@ static bool connection_cal_drip_send(void)
 	case 2: /* Gyro calibration */
 		buf[2] = RAW_CAL_SUB_GYRO;
 		memcpy(&buf[3], retained->gyroBias, sizeof(retained->gyroBias));
+		#if CONFIG_SENSOR_USE_SENS_CALIBRATION
 		memcpy(&buf[15], retained->gyroSensScale, sizeof(retained->gyroSensScale));
+		#endif
 		esb_write(buf, false, RAW_PACKET_SIZE);
 #if CONFIG_SENSOR_USE_TCAL
 		raw_cal_phase = 3;
