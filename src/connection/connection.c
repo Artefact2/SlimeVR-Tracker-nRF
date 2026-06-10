@@ -751,12 +751,15 @@ static bool connection_cal_drip_send(void)
 	buf[1] = tracker_id;
 
 	switch (raw_cal_phase) {
+
+	#if CONFIG_SENSOR_USE_6_SIDE_CALIBRATION
 	case 0: /* Accel calibration */
 		buf[2] = RAW_CAL_SUB_ACCEL;
 		memcpy(&buf[3], retained->accBAinv, sizeof(retained->accBAinv));
 		esb_write(buf, false, RAW_PACKET_SIZE);
 		raw_cal_phase = 1;
 		return true;
+	#endif
 
 	case 1: { /* Mag calibration */
 		buf[2] = RAW_CAL_SUB_MAG;
