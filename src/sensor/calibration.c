@@ -99,11 +99,11 @@ static mag_center_estimator_t manual_center_estimator;
 static mag_center_estimator_t online_center_estimator;
 // Minimum direction range per axis for accepting manual calibration
 // 0.5 ≈ 30° arc on each axis; requires meaningful rotation around at least 2 axes
-#define MAG_CAL_MIN_DIR_RANGE 0.5f
+#define MAG_CAL_MIN_DIR_RANGE 0.7f
 // Do not use a provisional min/max center until the raw point cloud spans a
 // meaningful range on every axis. Without this, tiny local motion around a
 // biased field can look like full centered coverage and produce a huge-gain fit.
-#define MAG_CAL_MIN_RAW_AXIS_RANGE 0.5f
+#define MAG_CAL_MIN_RAW_AXIS_RANGE 0.7f
 // Reject degenerate Magneto fits that turn a tiny point cloud into a sphere by
 // applying a very large soft-iron gain. Normal calibrated gains are around 1-3.
 #define MAG_CAL_MAX_AXIS_GAIN 8.0f
@@ -2869,6 +2869,9 @@ static void sensor_sample_mag_magneto_sample(const float m[3])
 // Gated by: VQF disturbance detection, accel magnitude, time interval, and direction change.
 void sensor_calibration_online_mag_sample(const float m[3])
 {
+	// Disable online mag cal
+	return;
+
 	// Don't accumulate during manual calibration
 	if (magneto_progress & 0x80) {
 		return;
